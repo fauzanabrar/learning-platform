@@ -73,6 +73,36 @@ export type LibraryItem = {
   note: string;
   href: string;
 };
+
+export type CourseWithId = Course & { id: string };
+
+export async function getCoursesWithIds(): Promise<CourseWithId[]> {
+  const courseRows = await db.select().from(courses).orderBy(asc(courses.title));
+  const courseIds = courseRows.map((course) => course.id);
+  const moduleRows = courseIds.length
+    ? await db.select().from(courseModules).where(inArray(courseModules.courseId, courseIds)).orderBy(asc(courseModules.sortOrder))
+    : [];
+
+  const modulesByCourse = moduleRows.reduce<Record<string, string[]>>((acc, module) => {
+    acc[module.courseId] = acc[module.courseId] ?? [];
+    acc[module.courseId].push(module.title);
+    return acc;
+  }, {});
+
+  return courseRows.map((course) => ({
+    id: course.id,
+    slug: course.slug,
+    title: course.title,
+    description: course.description,
+    lessons: course.lessons,
+    duration: course.duration,
+    level: course.level as Course["level"],
+    progress: course.progress,
+    modules: modulesByCourse[course.id] ?? [],
+    quiz: course.quizSlug,
+  }));
+}
+
 export async function getCourses(): Promise<Course[]> {
   const courseRows = await db.select().from(courses).orderBy(asc(courses.title));
   const courseIds = courseRows.map((course) => course.id);
@@ -148,6 +178,32 @@ export async function getVideoSeries(): Promise<VideoSeries[]> {
   }));
 }
 
+export type VideoSeriesWithId = VideoSeries & { id: string };
+
+export async function getVideoSeriesWithIds(): Promise<VideoSeriesWithId[]> {
+  const seriesRows = await db.select().from(videoSeries).orderBy(asc(videoSeries.title));
+  const seriesIds = seriesRows.map((series) => series.id);
+  const episodeRows = seriesIds.length
+    ? await db.select().from(videoEpisodes).where(inArray(videoEpisodes.seriesId, seriesIds)).orderBy(asc(videoEpisodes.sortOrder))
+    : [];
+
+  const episodesBySeries = episodeRows.reduce<Record<string, string[]>>((acc, episode) => {
+    acc[episode.seriesId] = acc[episode.seriesId] ?? [];
+    acc[episode.seriesId].push(episode.title);
+    return acc;
+  }, {});
+
+  return seriesRows.map((series) => ({
+    id: series.id,
+    slug: series.slug,
+    title: series.title,
+    level: series.level as VideoSeries["level"],
+    duration: series.duration,
+    progress: series.progress,
+    episodes: episodesBySeries[series.id] ?? [],
+  }));
+}
+
 export async function getVideoSeriesBySlug(slug: string): Promise<VideoSeries | null> {
   const seriesRows = await db.select().from(videoSeries).where(eq(videoSeries.slug, slug)).limit(1);
   if (seriesRows.length === 0) {
@@ -171,6 +227,32 @@ export async function getVideoSeriesBySlug(slug: string): Promise<VideoSeries | 
   };
 }
 
+export type VideoSeriesAdmin = VideoSeriesWithId;
+
+export async function getVideoSeriesAdminBySlug(slug: string): Promise<VideoSeriesAdmin | null> {
+  const seriesRows = await db.select().from(videoSeries).where(eq(videoSeries.slug, slug)).limit(1);
+  if (seriesRows.length === 0) {
+    return null;
+  }
+
+  const [series] = seriesRows;
+  const episodes = await db
+    .select()
+    .from(videoEpisodes)
+    .where(eq(videoEpisodes.seriesId, series.id))
+    .orderBy(asc(videoEpisodes.sortOrder));
+
+  return {
+    id: series.id,
+    slug: series.slug,
+    title: series.title,
+    level: series.level as VideoSeries["level"],
+    duration: series.duration,
+    progress: series.progress,
+    episodes: episodes.map((episode) => episode.title),
+  };
+}
+
 export async function getQuizzes(): Promise<Quiz[]> {
   const quizRows = await db.select().from(quizzes).orderBy(asc(quizzes.title));
   const quizIds = quizRows.map((quiz) => quiz.id);
@@ -185,6 +267,32 @@ export async function getQuizzes(): Promise<Quiz[]> {
   }, {});
 
   return quizRows.map((quiz) => ({
+    slug: quiz.slug,
+    title: quiz.title,
+    level: quiz.level as Quiz["level"],
+    questions: quiz.questions,
+    time: quiz.time,
+    topics: topicsByQuiz[quiz.id] ?? [],
+  }));
+}
+
+export type QuizWithId = Quiz & { id: string };
+
+export async function getQuizzesWithIds(): Promise<QuizWithId[]> {
+  const quizRows = await db.select().from(quizzes).orderBy(asc(quizzes.title));
+  const quizIds = quizRows.map((quiz) => quiz.id);
+  const topicRows = quizIds.length
+    ? await db.select().from(quizTopics).where(inArray(quizTopics.quizId, quizIds)).orderBy(asc(quizTopics.sortOrder))
+    : [];
+
+  const topicsByQuiz = topicRows.reduce<Record<string, string[]>>((acc, topic) => {
+    acc[topic.quizId] = acc[topic.quizId] ?? [];
+    acc[topic.quizId].push(topic.title);
+    return acc;
+  }, {});
+
+  return quizRows.map((quiz) => ({
+    id: quiz.id,
     slug: quiz.slug,
     title: quiz.title,
     level: quiz.level as Quiz["level"],
@@ -226,6 +334,8 @@ export type QuizQuestion = {
   optionD: string;
 };
 
+export type QuizQuestionAdmin = QuizQuestion & { correctAnswer: string };
+
 export async function getQuizQuestions(slug: string): Promise<QuizQuestion[] | null> {
   const quizRows = await db.select().from(quizzes).where(eq(quizzes.slug, slug)).limit(1);
   if (quizRows.length === 0) {
@@ -257,6 +367,45 @@ export async function getQuizWithQuestions(slug: string) {
   if (!questions) return null;
 
   return { ...quiz, questionsData: questions };
+}
+
+export async function getQuizAdminBySlug(slug: string): Promise<(QuizWithId & { topics: string[]; questionsData: QuizQuestionAdmin[] }) | null> {
+  const quizRows = await db.select().from(quizzes).where(eq(quizzes.slug, slug)).limit(1);
+  if (quizRows.length === 0) {
+    return null;
+  }
+
+  const [quiz] = quizRows;
+  const topics = await db
+    .select()
+    .from(quizTopics)
+    .where(eq(quizTopics.quizId, quiz.id))
+    .orderBy(asc(quizTopics.sortOrder));
+
+  const questions = await db
+    .select({
+      id: quizQuestions.id,
+      question: quizQuestions.question,
+      optionA: quizQuestions.optionA,
+      optionB: quizQuestions.optionB,
+      optionC: quizQuestions.optionC,
+      optionD: quizQuestions.optionD,
+      correctAnswer: quizQuestions.correctAnswer,
+    })
+    .from(quizQuestions)
+    .where(eq(quizQuestions.quizId, quiz.id))
+    .orderBy(asc(quizQuestions.sortOrder));
+
+  return {
+    id: quiz.id,
+    slug: quiz.slug,
+    title: quiz.title,
+    level: quiz.level as Quiz["level"],
+    questions: quiz.questions,
+    time: quiz.time,
+    topics: topics.map((topic) => topic.title),
+    questionsData: questions,
+  };
 }
 
 export async function getLatestQuizAttempt(slug: string) {
@@ -413,6 +562,32 @@ export async function getBlogPosts(): Promise<BlogPost[]> {
   }));
 }
 
+export type BlogPostWithId = BlogPost & { id: string };
+
+export async function getBlogPostsWithIds(): Promise<BlogPostWithId[]> {
+  const postRows = await db.select().from(blogPosts).orderBy(asc(blogPosts.createdAt));
+  const postIds = postRows.map((post) => post.id);
+  const contentRows = postIds.length
+    ? await db.select().from(blogContents).where(inArray(blogContents.postId, postIds)).orderBy(asc(blogContents.sortOrder))
+    : [];
+
+  const contentByPost = contentRows.reduce<Record<string, string[]>>((acc, content) => {
+    acc[content.postId] = acc[content.postId] ?? [];
+    acc[content.postId].push(content.body);
+    return acc;
+  }, {});
+
+  return postRows.map((post) => ({
+    id: post.id,
+    slug: post.slug,
+    title: post.title,
+    tag: post.tag,
+    readTime: post.readTime,
+    summary: post.summary,
+    content: contentByPost[post.id] ?? [],
+  }));
+}
+
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
   const postRows = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug)).limit(1);
   if (postRows.length === 0) {
@@ -427,6 +602,30 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> 
     .orderBy(asc(blogContents.sortOrder));
 
   return {
+    slug: post.slug,
+    title: post.title,
+    tag: post.tag,
+    readTime: post.readTime,
+    summary: post.summary,
+    content: contentRows.map((content) => content.body),
+  };
+}
+
+export async function getBlogPostAdminBySlug(slug: string): Promise<BlogPostWithId | null> {
+  const postRows = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug)).limit(1);
+  if (postRows.length === 0) {
+    return null;
+  }
+
+  const [post] = postRows;
+  const contentRows = await db
+    .select()
+    .from(blogContents)
+    .where(eq(blogContents.postId, post.id))
+    .orderBy(asc(blogContents.sortOrder));
+
+  return {
+    id: post.id,
     slug: post.slug,
     title: post.title,
     tag: post.tag,

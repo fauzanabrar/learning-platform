@@ -1,4 +1,4 @@
-import { Home, Settings, User, FileText, BookOpen, PlayCircle, ListVideo, CheckCircle2, Library, BarChart3, GraduationCap } from "lucide-react"
+import { Home, Settings, User, FileText, BookOpen, PlayCircle, ListVideo, CheckCircle2, Library, BarChart3, GraduationCap, Shield } from "lucide-react"
 
 export interface SidebarSubItem {
     title: string;
@@ -74,6 +74,32 @@ export const sidebarGroups: SidebarGroup[] = [
                 title: "Library",
                 url: "/dashboard/library",
                 icon: Library,
+            }
+        ]
+    },
+    {
+        title: "Admin",
+        type: "group",
+        items: [
+            {
+                title: "Manage Courses",
+                url: "/dashboard/admin/courses",
+                icon: BookOpen,
+            },
+            {
+                title: "Manage Videos",
+                url: "/dashboard/admin/videos",
+                icon: ListVideo,
+            },
+            {
+                title: "Manage Quizzes",
+                url: "/dashboard/admin/quizzes",
+                icon: CheckCircle2,
+            },
+            {
+                title: "Manage Blog",
+                url: "/dashboard/admin/blog",
+                icon: FileText,
             }
         ]
     },
