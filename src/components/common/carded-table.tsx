@@ -1,0 +1,41 @@
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+import { ReactNode } from "react"
+
+interface CardedTableProps {
+    title?: string
+    description?: string
+    headerContent?: ReactNode
+    children: ReactNode
+    className?: string
+    contentClassName?: string
+}
+
+// Lightweight wrapper to keep table cards consistent across dashboard pages.
+export function CardedTable({
+    title,
+    description,
+    headerContent,
+    children,
+    className,
+    contentClassName,
+}: CardedTableProps) {
+    return (
+        <Card className={cn("border-none shadow-md", className)}>
+            {(title || description || headerContent) && (
+                <CardHeader className="px-6 py-4">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div className="space-y-1 text-start">
+                            {title && <CardTitle>{title}</CardTitle>}
+                            {description && <CardDescription>{description}</CardDescription>}
+                        </div>
+                        {headerContent}
+                    </div>
+                </CardHeader>
+            )}
+            <CardContent className={cn("p-0", contentClassName)}>
+                <div className="overflow-x-auto">{children}</div>
+            </CardContent>
+        </Card>
+    )
+}
