@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CCR Admin Template",
-  description: "Advanced Admin Template based on CCR",
+  title: "LearnHub",
+  description: "Learning platform for video series, topics, blogs, and quizzes.",
 };
 
 export default function RootLayout({

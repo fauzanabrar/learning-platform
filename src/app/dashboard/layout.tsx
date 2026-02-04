@@ -31,7 +31,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                                 </BreadcrumbItem>
                                 <BreadcrumbSeparator className="hidden md:block" />
                                 <BreadcrumbItem>
-                                    <BreadcrumbPage>Overview</BreadcrumbPage>
+                                    <BreadcrumbPage>Learning</BreadcrumbPage>
                                 </BreadcrumbItem>
                             </BreadcrumbList>
                         </Breadcrumb>

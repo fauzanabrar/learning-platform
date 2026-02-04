@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { logout } from "@/lib/actions"
 import { LogOut, User, Settings, ChevronDown } from "lucide-react"
-import { useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 
 interface UserNavProps {
     user: {
@@ -23,6 +23,15 @@ interface UserNavProps {
 
 export function UserNav({ user }: UserNavProps) {
     const [isPending, startTransition] = useTransition()
+    const [isMounted, setIsMounted] = useState(false)
+
+    useEffect(() => {
+        setIsMounted(true)
+    }, [])
+
+    if (!isMounted) {
+        return null
+    }
 
     return (
         <DropdownMenu>

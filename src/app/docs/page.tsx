@@ -10,11 +10,11 @@ export default function DocsPage() {
         <div className="max-w-5xl mx-auto py-12 px-6">
             <div className="space-y-4 mb-12">
                 <div className="flex items-center gap-3 text-primary font-bold uppercase tracking-[0.2em] text-xs">
-                    <BookOpen className="h-4 w-4" /> Documentation
+                    <BookOpen className="h-4 w-4" /> Learning Guide
                 </div>
-                <h1 className="text-5xl font-black tracking-tighter">Getting Started</h1>
+                <h1 className="text-5xl font-black tracking-tighter">Start Learning Smarter</h1>
                 <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed">
-                    Everything you need to build and scale your applications with our modern platform architecture and design system.
+                    Tips, guides, and best practices to help you learn faster with video series, topic paths, and quizzes.
                 </p>
                 <div className="relative max-w-md pt-4">
                     <Search className="absolute left-3 top-[calc(50%+8px)] -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -27,9 +27,9 @@ export default function DocsPage() {
 
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 mb-16">
                 {[
-                    { title: "Core Concepts", desc: "Understand the fundamental architecture and principles.", icon: Zap, color: "text-amber-500 bg-amber-500/10" },
-                    { title: "Quick Setup", desc: "Deploy your first application in less than 5 minutes.", icon: Rocket, color: "text-emerald-500 bg-emerald-500/10" },
-                    { title: "Security Guide", desc: "Learn how we protect your data and identity.", icon: Shield, color: "text-blue-500 bg-blue-500/10" },
+                    { title: "Learning Paths", desc: "Follow structured topics and series that build skills step by step.", icon: Zap, color: "text-amber-500 bg-amber-500/10" },
+                    { title: "Quick Start", desc: "Build a daily study routine in under 5 minutes.", icon: Rocket, color: "text-emerald-500 bg-emerald-500/10" },
+                    { title: "Assessment", desc: "Use quizzes and checkpoints to reinforce retention.", icon: Shield, color: "text-blue-500 bg-blue-500/10" },
                 ].map((item, i) => (
                     <Card key={i} className="hover:shadow-xl transition-all cursor-pointer group border-muted/50">
                         <CardHeader>
@@ -46,9 +46,9 @@ export default function DocsPage() {
             <div className="grid gap-12 lg:grid-cols-4">
                 <div className="lg:col-span-1 space-y-8 h-fit sticky top-8">
                     <div className="space-y-3">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Fundamentals</h4>
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Getting Started</h4>
                         <div className="space-y-1">
-                            {["Introduction", "Architecture", "Installation", "Folder Structure"].map(link => (
+                            {["Welcome", "Learning Paths", "Video Series", "Quizzes"].map(link => (
                                 <div key={link} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 cursor-pointer text-sm font-medium transition-colors group">
                                     <span className="group-hover:text-primary">{link}</span>
                                     <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-30" />
@@ -57,9 +57,9 @@ export default function DocsPage() {
                         </div>
                     </div>
                     <div className="space-y-3">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Frameworks</h4>
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Study Skills</h4>
                         <div className="space-y-1">
-                            {["Next.js", "React Native", "Tailwind CSS", "Drizzle ORM"].map(link => (
+                            {["Time Blocking", "Active Recall", "Note Taking", "Project Practice"].map(link => (
                                 <div key={link} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 cursor-pointer text-sm font-medium transition-colors group">
                                     <span className="group-hover:text-primary">{link}</span>
                                     <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-30" />
@@ -72,25 +72,25 @@ export default function DocsPage() {
                 <Card className="lg:col-span-3 border-none shadow-none bg-transparent">
                     <CardContent className="space-y-10 p-0">
                         <section className="space-y-4">
-                            <h2 className="text-3xl font-bold tracking-tight">Introduction</h2>
+                            <h2 className="text-3xl font-bold tracking-tight">Welcome</h2>
                             <p className="text-muted-foreground leading-relaxed">
-                                Welcome to the official documentation. This guide is designed to help you navigate through the complexities of modern web development using our curated technology stack. We prioritize performance, developer experience, and scalability above all else.
+                                The LearnHub guide helps you build a focused study plan, pick the right series, and stay accountable with quizzes and progress tracking.
                             </p>
                             <div className="p-6 bg-primary/5 border-l-4 border-primary rounded-r-xl">
                                 <p className="text-sm font-medium leading-relaxed italic opacity-80">
-                                    "Architecture should be a servant of the business, not a master of the engineers."
+                                    "Small, consistent sessions outperform occasional marathons."
                                 </p>
                             </div>
                         </section>
 
                         <section className="space-y-4">
-                            <h3 className="text-xl font-bold">Key Technologies</h3>
+                            <h3 className="text-xl font-bold">Core Learning Tools</h3>
                             <div className="grid gap-4 sm:grid-cols-2">
                                 {[
-                                    { name: "Next.js 14", status: "Production Ready" },
-                                    { name: "Tailwind CSS", status: "Utility First" },
-                                    { name: "Lucide Icons", status: "Vibrant Symbols" },
-                                    { name: "Drizzle ORM", status: "Type Safe Access" },
+                                    { name: "Video Series", status: "Guided" },
+                                    { name: "Topic Maps", status: "Structured" },
+                                    { name: "Quizzes", status: "Retention" },
+                                    { name: "Blog Notes", status: "Reference" },
                                 ].map(tech => (
                                     <div key={tech.name} className="p-4 border rounded-xl flex items-center justify-between bg-white/50 dark:bg-card/50">
                                         <div className="flex items-center gap-3">

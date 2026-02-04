@@ -1,4 +1,4 @@
-import { Home, Database, Settings, Box, User, FileText, LayoutDashboard, Server, Mail, MessageCircle, Kanban, Calendar, BarChart3, Users, ShoppingCart } from "lucide-react"
+import { Home, Settings, User, FileText, BookOpen, PlayCircle, ListVideo, CheckCircle2, Library, BarChart3, GraduationCap } from "lucide-react"
 
 export interface SidebarSubItem {
     title: string;
@@ -31,85 +31,49 @@ export const sidebarGroups: SidebarGroup[] = [
         ]
     },
     {
-        title: "Analytics & Insights",
+        title: "Learning",
         type: "group",
         items: [
             {
-                title: "Analytics",
-                url: "/dashboard/analytics",
+                title: "Courses",
+                url: "/dashboard/courses",
+                icon: BookOpen,
+            },
+            {
+                title: "Video Series",
+                url: "/dashboard/videos",
+                icon: ListVideo,
+            },
+            {
+                title: "Topics",
+                url: "/dashboard/topics",
+                icon: GraduationCap,
+            },
+            {
+                title: "Quizzes",
+                url: "/dashboard/quizzes",
+                icon: CheckCircle2,
+            },
+            {
+                title: "Blog",
+                url: "/dashboard/blog",
+                icon: FileText,
+            },
+        ]
+    },
+    {
+        title: "Progress",
+        type: "group",
+        items: [
+            {
+                title: "My Progress",
+                url: "/dashboard/progress",
                 icon: BarChart3,
             },
             {
-                title: "Statistics",
-                url: "/dashboard/statistics",
-                icon: LayoutDashboard,
-            },
-        ]
-    },
-    {
-        title: "Content & Operations",
-        type: "group",
-        items: [
-            {
-                title: "Customers",
-                url: "/dashboard/customers",
-                icon: Users,
-            },
-            {
-                title: "Sales",
-                url: "/dashboard/sales",
-                icon: ShoppingCart,
-            },
-        ]
-    },
-    {
-        title: "Workspace Apps",
-        type: "group",
-        items: [
-            {
-                title: "Email",
-                url: "/dashboard/apps/email",
-                icon: Mail,
-            },
-            {
-                title: "Chat",
-                url: "/dashboard/apps/chat",
-                icon: MessageCircle,
-            },
-            {
-                title: "Kanban",
-                url: "/dashboard/apps/kanban",
-                icon: Kanban,
-            },
-            {
-                title: "Calendar",
-                url: "/dashboard/apps/calendar",
-                icon: Calendar,
-            },
-        ]
-    },
-    {
-        title: "Development",
-        type: "group",
-        items: [
-            {
-                title: "Database",
-                icon: Database,
-                items: [
-                    { title: "All Tables", url: "/dashboard/database" },
-                    { title: "Query Editor", url: "/dashboard/database/query" },
-                    { title: "Migrations", url: "/dashboard/database/migrations" },
-                ]
-            },
-            {
-                title: "Components",
-                url: "/dashboard/components",
-                icon: Box,
-            },
-            {
-                title: "API Keys",
-                url: "/dashboard/api-keys",
-                icon: Server,
+                title: "Library",
+                url: "/dashboard/library",
+                icon: Library,
             }
         ]
     },
@@ -128,7 +92,7 @@ export const sidebarGroups: SidebarGroup[] = [
                 icon: Settings,
             },
             {
-                title: "Documentation",
+                title: "Learning Guide",
                 url: "/docs",
                 icon: FileText,
             },

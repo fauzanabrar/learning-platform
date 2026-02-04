@@ -32,7 +32,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
         <Sidebar className="border-r-0 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-2xl shadow-xl transition-all duration-300">
             <SidebarHeader className="h-16 flex items-center justify-center border-b border-black/5 dark:border-white/5 px-6">
                 <span className="text-xl font-bold bg-gradient-to-tr from-primary to-purple-600 bg-clip-text text-transparent">
-                    CCR Admin
+                    LearnHub
                 </span>
             </SidebarHeader>
             <SidebarContent className="px-4 py-6 gap-8">
