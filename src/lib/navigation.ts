@@ -92,6 +92,11 @@ export const sidebarGroups: SidebarGroup[] = [
                 icon: ListVideo,
             },
             {
+                title: "Manage Topics",
+                url: "/dashboard/admin/topics",
+                icon: GraduationCap,
+            },
+            {
                 title: "Manage Quizzes",
                 url: "/dashboard/admin/quizzes",
                 icon: CheckCircle2,

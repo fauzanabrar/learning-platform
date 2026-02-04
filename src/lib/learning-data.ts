@@ -486,6 +486,41 @@ export async function getTopics(): Promise<Topic[]> {
   }));
 }
 
+export type TopicWithId = Topic & { id: string };
+
+export type TopicAdminListItem = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  lessons: number;
+  seriesCount: number;
+  coursesCount: number;
+  quizzesCount: number;
+};
+
+export async function getTopicsWithIds(): Promise<TopicAdminListItem[]> {
+  const topicRows = await db.select().from(topics).orderBy(asc(topics.title));
+  const topicIds = topicRows.map((topic) => topic.id);
+
+  const [seriesLinks, courseLinks, quizLinks] = await Promise.all([
+    topicIds.length ? db.select().from(topicSeries).where(inArray(topicSeries.topicId, topicIds)) : [],
+    topicIds.length ? db.select().from(topicCourses).where(inArray(topicCourses.topicId, topicIds)) : [],
+    topicIds.length ? db.select().from(topicQuizzes).where(inArray(topicQuizzes.topicId, topicIds)) : [],
+  ]);
+
+  return topicRows.map((topic) => ({
+    id: topic.id,
+    slug: topic.slug,
+    title: topic.title,
+    description: topic.description,
+    lessons: topic.lessons,
+    seriesCount: seriesLinks.filter((link) => link.topicId === topic.id).length,
+    coursesCount: courseLinks.filter((link) => link.topicId === topic.id).length,
+    quizzesCount: quizLinks.filter((link) => link.topicId === topic.id).length,
+  }));
+}
+
 export async function getTopicBySlug(slug: string): Promise<Topic | null> {
   const topicRows = await db.select().from(topics).where(eq(topics.slug, slug)).limit(1);
   if (topicRows.length === 0) {
@@ -536,6 +571,40 @@ export async function getTopicBySlug(slug: string): Promise<Topic | null> {
         return row ? { title: row.title, slug: row.slug } : null;
       })
       .filter((item): item is { title: string; slug: string } => Boolean(item)),
+  };
+}
+
+export async function getTopicAdminBySlug(slug: string): Promise<(TopicWithId & { seriesSlugs: string[]; courseSlugs: string[]; quizSlugs: string[] }) | null> {
+  const topicRows = await db.select().from(topics).where(eq(topics.slug, slug)).limit(1);
+  if (topicRows.length === 0) {
+    return null;
+  }
+
+  const [topic] = topicRows;
+  const [seriesLinks, courseLinks, quizLinks] = await Promise.all([
+    db.select().from(topicSeries).where(eq(topicSeries.topicId, topic.id)),
+    db.select().from(topicCourses).where(eq(topicCourses.topicId, topic.id)),
+    db.select().from(topicQuizzes).where(eq(topicQuizzes.topicId, topic.id)),
+  ]);
+
+  const [seriesRows, courseRows, quizRows] = await Promise.all([
+    seriesLinks.length ? db.select().from(videoSeries).where(inArray(videoSeries.id, seriesLinks.map((l) => l.seriesId))) : [],
+    courseLinks.length ? db.select().from(courses).where(inArray(courses.id, courseLinks.map((l) => l.courseId))) : [],
+    quizLinks.length ? db.select().from(quizzes).where(inArray(quizzes.id, quizLinks.map((l) => l.quizId))) : [],
+  ]);
+
+  return {
+    id: topic.id,
+    slug: topic.slug,
+    title: topic.title,
+    description: topic.description,
+    lessons: topic.lessons,
+    series: [],
+    courses: [],
+    quizzes: [],
+    seriesSlugs: seriesRows.map((row) => row.slug),
+    courseSlugs: courseRows.map((row) => row.slug),
+    quizSlugs: quizRows.map((row) => row.slug),
   };
 }
 

@@ -27,7 +27,7 @@ export function SidebarItem({ item }: SidebarItemProps) {
         return (
             <SidebarMenuItem>
                 <div className="space-y-2">
-                    <div className="px-3 py-2 flex items-center gap-3 text-sm font-bold text-foreground/70 uppercase tracking-tight">
+                    <div className="px-3 py-2 flex items-center gap-0 text-sm font-bold text-foreground/70 uppercase tracking-tight">
                         {item.icon && <item.icon className="h-4 w-4" />}
                         <span>{item.title}</span>
                     </div>
@@ -37,8 +37,8 @@ export function SidebarItem({ item }: SidebarItemProps) {
                                 <SidebarMenuSubButton
                                     asChild
                                     isActive={pathname === subItem.url}
-                                    size="md"
-                                    className="h-10 text-base font-medium border border-transparent hover:bg-sidebar-accent hover:border-sidebar-border hover:shadow-sm transition-all"
+                                    size="sm"
+                                    className="h-8 text-sm font-medium border border-transparent hover:bg-sidebar-accent hover:border-sidebar-border hover:shadow-sm transition-all"
                                 >
                                     <Link href={subItem.url} onClick={handleClick}>
                                         <span>{subItem.title}</span>
@@ -58,8 +58,8 @@ export function SidebarItem({ item }: SidebarItemProps) {
                 asChild
                 isActive={isExactMatch}
                 tooltip={item.title}
-                size="lg"
-                className="h-12 text-base font-medium border border-transparent shadow-none hover:shadow-sm hover:border-sidebar-border hover:bg-sidebar-accent transition-all"
+                size="default"
+                className="h-9 text-base font-medium border border-transparent shadow-none hover:shadow-sm hover:border-sidebar-border hover:bg-sidebar-accent transition-all"
             >
                 <Link href={item.url || "#"} onClick={handleClick}>
                     {item.icon && <item.icon className="h-5 w-5" />}
