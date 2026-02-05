@@ -50,6 +50,7 @@ export default function VideoSeriesClient({ series }: { series: VideoSeries }) {
   const [playbackRate, setPlaybackRate] = useState(1);
   const [quality, setQuality] = useState("auto");
   const [detectedResolution, setDetectedResolution] = useState<{ width: number; height: number } | null>(null);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const storageKey = useMemo(() => `learnhub:video:${series.slug}`, [series.slug]);
@@ -66,10 +67,19 @@ export default function VideoSeriesClient({ series }: { series: VideoSeries }) {
 
     const handleLoadedMetadata = () => {
       setDetectedResolution({ width: video.videoWidth, height: video.videoHeight });
+      setVideoError(null); // Clear any previous errors
+    };
+
+    const handleError = () => {
+      setVideoError("Cannot load video. Use Upload button or ensure URL is accessible (not a local file path).");
     };
 
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
-    return () => video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+    video.addEventListener("error", handleError);
+    return () => {
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("error", handleError);
+    };
   }, [videoUrl]);
 
   // Filter quality options based on detected resolution
@@ -179,6 +189,14 @@ export default function VideoSeriesClient({ series }: { series: VideoSeries }) {
         <CardContent>
           {selectedEpisode?.videoUrl ? (
             <div className="space-y-4">
+              {videoError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                  <p className="text-sm text-red-600">{videoError}</p>
+                  <p className="mt-1 text-xs text-red-500">
+                    Tip: Use the Upload button in admin to upload local videos to Cloudinary.
+                  </p>
+                </div>
+              )}
               <video
                 ref={videoRef}
                 className="w-full rounded-xl border bg-black"
