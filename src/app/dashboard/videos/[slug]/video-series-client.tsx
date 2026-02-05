@@ -49,6 +49,7 @@ export default function VideoSeriesClient({ series }: { series: VideoSeries }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [quality, setQuality] = useState("auto");
+  const [detectedResolution, setDetectedResolution] = useState<{ width: number; height: number } | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const storageKey = useMemo(() => `learnhub:video:${series.slug}`, [series.slug]);
@@ -57,6 +58,31 @@ export default function VideoSeriesClient({ series }: { series: VideoSeries }) {
     () => getVideoUrlWithQuality(selectedEpisode?.videoUrl || "", quality),
     [selectedEpisode?.videoUrl, quality]
   );
+
+  // Detect video resolution when metadata loads
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleLoadedMetadata = () => {
+      setDetectedResolution({ width: video.videoWidth, height: video.videoHeight });
+    };
+
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    return () => video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+  }, [videoUrl]);
+
+  // Filter quality options based on detected resolution
+  const availableQualities = useMemo(() => {
+    if (!detectedResolution) return QUALITIES;
+
+    return QUALITIES.filter((q) => {
+      if (q.value === "auto") return true;
+      if (!q.height) return false;
+      // Only show qualities at or below the source resolution
+      return q.height <= detectedResolution.height;
+    });
+  }, [detectedResolution]);
 
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
@@ -113,19 +139,24 @@ export default function VideoSeriesClient({ series }: { series: VideoSeries }) {
     const currentTime = video.currentTime;
     const wasPlaying = !video.paused;
 
-    // Change quality
+    // Pause before changing
+    video.pause();
+
+    // Change quality (this will trigger a re-render with new URL)
     setQuality(newQuality);
 
-    // Restore position and playing state after video loads
-    const handleLoadedMetadata = () => {
-      video.currentTime = currentTime;
-      if (wasPlaying) {
-        video.play();
+    // Wait for next tick to ensure new video element is rendered
+    setTimeout(() => {
+      const newVideo = videoRef.current;
+      if (newVideo) {
+        newVideo.currentTime = currentTime;
+        if (wasPlaying) {
+          newVideo.play().catch(() => {
+            // Autoplay might be blocked
+          });
+        }
       }
-      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
-    };
-
-    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    }, 100);
   };
 
   return (
@@ -177,7 +208,7 @@ export default function VideoSeriesClient({ series }: { series: VideoSeries }) {
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     <Settings className="h-3 w-3" /> Quality
                   </span>
-                  {QUALITIES.map((q) => (
+                  {availableQualities.map((q) => (
                     <Button
                       key={q.value}
                       type="button"
@@ -188,6 +219,11 @@ export default function VideoSeriesClient({ series }: { series: VideoSeries }) {
                       {q.label}
                     </Button>
                   ))}
+                  {detectedResolution && (
+                    <span className="text-xs text-muted-foreground">
+                      ({detectedResolution.width}×{detectedResolution.height})
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
