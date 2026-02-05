@@ -5,15 +5,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import { Plus, Trash2, UploadCloud } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createVideoSeries } from "@/lib/video-actions";
+import { CldUploadWidget } from "next-cloudinary";
 
 type EpisodeInput = {
   title: string;
   videoUrl: string;
   uploadStatus?: "idle" | "uploading" | "done" | "error";
+  uploadProgress?: number;
 };
 
 const isLikelySupportedVideo = (url: string) => {
@@ -38,23 +41,58 @@ export default function CreateVideoSeriesPage() {
   const handleUpload = async (index: number, file: File) => {
     const newEpisodes = [...episodes];
     newEpisodes[index].uploadStatus = "uploading";
+    newEpisodes[index].uploadProgress = 0;
     setEpisodes(newEpisodes);
 
-    try {
+    return new Promise((resolve, reject) => {
       const data = new FormData();
       data.append("file", file);
-      const response = await fetch("/api/uploads/video", { method: "POST", body: data });
-      if (!response.ok) throw new Error("Upload failed");
-      const result = await response.json();
-      const next = [...episodes];
-      next[index].videoUrl = result.url;
-      next[index].uploadStatus = "done";
-      setEpisodes(next);
-    } catch {
-      const next = [...episodes];
-      next[index].uploadStatus = "error";
-      setEpisodes(next);
-    }
+
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          const next = [...episodes];
+          next[index].uploadProgress = progress;
+          setEpisodes(next);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const result = JSON.parse(xhr.responseText);
+            const next = [...episodes];
+            next[index].videoUrl = result.url;
+            next[index].uploadStatus = "done";
+            next[index].uploadProgress = 100;
+            setEpisodes(next);
+            resolve(result);
+          } catch {
+            const next = [...episodes];
+            next[index].uploadStatus = "error";
+            setEpisodes(next);
+            reject(new Error("Failed to parse response"));
+          }
+        } else {
+          const next = [...episodes];
+          next[index].uploadStatus = "error";
+          setEpisodes(next);
+          reject(new Error("Upload failed"));
+        }
+      };
+
+      xhr.onerror = () => {
+        const next = [...episodes];
+        next[index].uploadStatus = "error";
+        setEpisodes(next);
+        reject(new Error("Network error"));
+      };
+
+      xhr.open("POST", "/api/uploads/video");
+      xhr.send(data);
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -156,21 +194,38 @@ export default function CreateVideoSeriesPage() {
                       onChange={(e) => updateEpisode(index, "videoUrl", e.target.value)}
                       placeholder="https://video-url.com/episode.mp4"
                     />
-                    <label className="inline-flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-                      <input
-                        type="file"
-                        accept="video/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleUpload(index, file);
-                        }}
-                      />
-                      <span className="inline-flex items-center gap-1 rounded-md border px-2 py-1">
-                        <UploadCloud className="h-4 w-4" />
-                        Upload
-                      </span>
-                    </label>
+                    <CldUploadWidget
+                      uploadPreset="ml_default"
+                      options={{
+                        resourceType: "video",
+                        folder: "learning-platform/videos",
+                        maxFileSize: 100000000000,
+                        sources: ["local"],
+                      }}
+                      onSuccess={(result: any) => {
+                        const next = [...episodes];
+                        next[index].videoUrl = result.info.secure_url;
+                        next[index].uploadStatus = "done";
+                        setEpisodes(next);
+                      }}
+                      onQueued={() => {
+                        const next = [...episodes];
+                        next[index].uploadStatus = "uploading";
+                        setEpisodes(next);
+                      }}
+                    >
+                      {({ open }) => (
+                        <button
+                          type="button"
+                          onClick={() => open()}
+                          disabled={episode.uploadStatus === "uploading"}
+                          className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground ${episode.uploadStatus === "uploading" ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-accent"}`}
+                        >
+                          <UploadCloud className="h-4 w-4" />
+                          {episode.uploadStatus === "uploading" ? "Uploading..." : "Upload"}
+                        </button>
+                      )}
+                    </CldUploadWidget>
                   </div>
                   {episode.videoUrl && !isLikelySupportedVideo(episode.videoUrl) && (
                     <p className="text-xs text-amber-600">
@@ -178,7 +233,13 @@ export default function CreateVideoSeriesPage() {
                     </p>
                   )}
                   {episode.uploadStatus === "uploading" && (
-                    <p className="text-xs text-muted-foreground">Uploading...</p>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Uploading...</span>
+                        <span className="font-medium">{episode.uploadProgress}%</span>
+                      </div>
+                      <Progress value={episode.uploadProgress} />
+                    </div>
                   )}
                   {episode.uploadStatus === "done" && (
                     <p className="text-xs text-green-600">Upload complete</p>

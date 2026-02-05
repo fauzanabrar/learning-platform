@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Clock, PlayCircle, Volume2, Maximize2, Gauge } from "lucide-react";
+import { Clock, PlayCircle, Volume2, Maximize2, Gauge, Settings } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Episode = {
@@ -22,14 +22,41 @@ type VideoSeries = {
 };
 
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
+const QUALITIES = [
+  { label: "Auto", value: "auto" },
+  { label: "1080p", value: "1080p", width: 1920, height: 1080 },
+  { label: "720p", value: "720p", width: 1280, height: 720 },
+  { label: "480p", value: "480p", width: 854, height: 480 },
+];
+
+function getVideoUrlWithQuality(originalUrl: string, quality: string): string {
+  if (quality === "auto" || !originalUrl) return originalUrl;
+  
+  // Check if it's a Cloudinary URL
+  if (!originalUrl.includes("cloudinary.com")) return originalUrl;
+  
+  const qualityConfig = QUALITIES.find(q => q.value === quality);
+  if (!qualityConfig || !qualityConfig.width) return originalUrl;
+  
+  // Insert transformation before the version number or filename
+  // Example: https://res.cloudinary.com/demo/video/upload/v1234/sample.mp4
+  // Becomes: https://res.cloudinary.com/demo/video/upload/c_limit,h_720,w_1280/v1234/sample.mp4
+  const transformation = `c_limit,h_${qualityConfig.height},q_auto:good,w_${qualityConfig.width}`;
+  return originalUrl.replace(/\/upload\//, `/upload/${transformation}/`);
+}
 
 export default function VideoSeriesClient({ series }: { series: VideoSeries }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [quality, setQuality] = useState("auto");
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const storageKey = useMemo(() => `learnhub:video:${series.slug}`, [series.slug]);
   const selectedEpisode = series.episodes[selectedIndex];
+  const videoUrl = useMemo(
+    () => getVideoUrlWithQuality(selectedEpisode?.videoUrl || "", quality),
+    [selectedEpisode?.videoUrl, quality]
+  );
 
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
@@ -75,6 +102,32 @@ export default function VideoSeriesClient({ series }: { series: VideoSeries }) {
     return () => video.removeEventListener("timeupdate", handleTimeUpdate);
   }, [selectedIndex, storageKey]);
 
+  const handleQualityChange = (newQuality: string) => {
+    const video = videoRef.current;
+    if (!video) {
+      setQuality(newQuality);
+      return;
+    }
+
+    // Save current position and playing state
+    const currentTime = video.currentTime;
+    const wasPlaying = !video.paused;
+
+    // Change quality
+    setQuality(newQuality);
+
+    // Restore position and playing state after video loads
+    const handleLoadedMetadata = () => {
+      video.currentTime = currentTime;
+      if (wasPlaying) {
+        video.play();
+      }
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+    };
+
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+  };
+
   return (
     <div className="space-y-8">
       <div className="space-y-3">
@@ -100,23 +153,42 @@ export default function VideoSeriesClient({ series }: { series: VideoSeries }) {
                 className="w-full rounded-xl border bg-black"
                 controls
                 preload="metadata"
-                src={selectedEpisode.videoUrl}
+                src={videoUrl}
+                key={videoUrl}
               />
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <Gauge className="h-3 w-3" /> Speed
-                </span>
-                {SPEEDS.map((speed) => (
-                  <Button
-                    key={speed}
-                    type="button"
-                    size="sm"
-                    variant={playbackRate === speed ? "default" : "outline"}
-                    onClick={() => setPlaybackRate(speed)}
-                  >
-                    {speed}x
-                  </Button>
-                ))}
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Gauge className="h-3 w-3" /> Speed
+                  </span>
+                  {SPEEDS.map((speed) => (
+                    <Button
+                      key={speed}
+                      type="button"
+                      size="sm"
+                      variant={playbackRate === speed ? "default" : "outline"}
+                      onClick={() => setPlaybackRate(speed)}
+                    >
+                      {speed}x
+                    </Button>
+                  ))}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Settings className="h-3 w-3" /> Quality
+                  </span>
+                  {QUALITIES.map((q) => (
+                    <Button
+                      key={q.value}
+                      type="button"
+                      size="sm"
+                      variant={quality === q.value ? "default" : "outline"}
+                      onClick={() => handleQualityChange(q.value)}
+                    >
+                      {q.label}
+                    </Button>
+                  ))}
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1"><PlayCircle className="h-3 w-3" /> Playback controls</span>
