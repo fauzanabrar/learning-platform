@@ -17,7 +17,7 @@ export async function createVideoSeries(formData: FormData) {
       return { success: false, error: "Missing required fields" };
     }
 
-    let episodesList: string[] = [];
+    let episodesList: { title: string; videoUrl?: string | null }[] = [];
     try {
       episodesList = JSON.parse(episodesJson);
     } catch {
@@ -37,9 +37,10 @@ export async function createVideoSeries(formData: FormData) {
 
     if (episodesList.length > 0) {
       await db.insert(videoEpisodes).values(
-        episodesList.map((episodeTitle, index) => ({
+        episodesList.map((episode, index) => ({
           seriesId: series.id,
-          title: episodeTitle,
+          title: episode.title,
+          videoUrl: episode.videoUrl || null,
           sortOrder: index + 1,
         }))
       );
@@ -68,7 +69,7 @@ export async function updateVideoSeries(seriesId: string, formData: FormData) {
       return { success: false, error: "Missing required fields" };
     }
 
-    let episodesList: string[] = [];
+    let episodesList: { title: string; videoUrl?: string | null }[] = [];
     try {
       episodesList = JSON.parse(episodesJson);
     } catch {
@@ -90,9 +91,10 @@ export async function updateVideoSeries(seriesId: string, formData: FormData) {
     
     if (episodesList.length > 0) {
       await db.insert(videoEpisodes).values(
-        episodesList.map((episodeTitle, index) => ({
+        episodesList.map((episode, index) => ({
           seriesId,
-          title: episodeTitle,
+          title: episode.title,
+          videoUrl: episode.videoUrl || null,
           sortOrder: index + 1,
         }))
       );

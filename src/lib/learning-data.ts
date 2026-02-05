@@ -36,7 +36,7 @@ export type VideoSeries = {
   level: "Beginner" | "Intermediate" | "Advanced";
   duration: string;
   progress: number;
-  episodes: string[];
+  episodes: { title: string; videoUrl?: string | null }[];
 };
 
 export type Quiz = {
@@ -162,9 +162,9 @@ export async function getVideoSeries(): Promise<VideoSeries[]> {
     ? await db.select().from(videoEpisodes).where(inArray(videoEpisodes.seriesId, seriesIds)).orderBy(asc(videoEpisodes.sortOrder))
     : [];
 
-  const episodesBySeries = episodeRows.reduce<Record<string, string[]>>((acc, episode) => {
+  const episodesBySeries = episodeRows.reduce<Record<string, { title: string; videoUrl?: string | null }[]>>((acc, episode) => {
     acc[episode.seriesId] = acc[episode.seriesId] ?? [];
-    acc[episode.seriesId].push(episode.title);
+    acc[episode.seriesId].push({ title: episode.title, videoUrl: episode.videoUrl });
     return acc;
   }, {});
 
@@ -187,9 +187,9 @@ export async function getVideoSeriesWithIds(): Promise<VideoSeriesWithId[]> {
     ? await db.select().from(videoEpisodes).where(inArray(videoEpisodes.seriesId, seriesIds)).orderBy(asc(videoEpisodes.sortOrder))
     : [];
 
-  const episodesBySeries = episodeRows.reduce<Record<string, string[]>>((acc, episode) => {
+  const episodesBySeries = episodeRows.reduce<Record<string, { title: string; videoUrl?: string | null }[]>>((acc, episode) => {
     acc[episode.seriesId] = acc[episode.seriesId] ?? [];
-    acc[episode.seriesId].push(episode.title);
+    acc[episode.seriesId].push({ title: episode.title, videoUrl: episode.videoUrl });
     return acc;
   }, {});
 
@@ -223,7 +223,7 @@ export async function getVideoSeriesBySlug(slug: string): Promise<VideoSeries | 
     level: series.level as VideoSeries["level"],
     duration: series.duration,
     progress: series.progress,
-    episodes: episodes.map((episode) => episode.title),
+    episodes: episodes.map((episode) => ({ title: episode.title, videoUrl: episode.videoUrl })),
   };
 }
 
@@ -249,7 +249,7 @@ export async function getVideoSeriesAdminBySlug(slug: string): Promise<VideoSeri
     level: series.level as VideoSeries["level"],
     duration: series.duration,
     progress: series.progress,
-    episodes: episodes.map((episode) => episode.title),
+    episodes: episodes.map((episode) => ({ title: episode.title, videoUrl: episode.videoUrl })),
   };
 }
 

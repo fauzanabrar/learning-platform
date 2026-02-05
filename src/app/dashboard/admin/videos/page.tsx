@@ -37,6 +37,11 @@ export default async function AdminVideosPage() {
                 <Badge variant="outline">{item.duration}</Badge>
               </div>
 
+              <div className="text-xs text-muted-foreground">
+                {item.episodes.slice(0, 3).map((ep) => ep.title).join(" • ")}
+                {item.episodes.length > 3 ? " • …" : ""}
+              </div>
+
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" asChild className="flex-1">
                   <Link href={`/dashboard/videos/${item.slug}`}>

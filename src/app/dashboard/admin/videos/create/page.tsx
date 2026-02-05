@@ -5,23 +5,56 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, UploadCloud } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createVideoSeries } from "@/lib/video-actions";
 
+type EpisodeInput = {
+  title: string;
+  videoUrl: string;
+  uploadStatus?: "idle" | "uploading" | "done" | "error";
+};
+
+const isLikelySupportedVideo = (url: string) => {
+  const lower = url.toLowerCase();
+  return lower.endsWith(".mp4") || lower.endsWith(".webm") || lower.endsWith(".ogg");
+};
+
 export default function CreateVideoSeriesPage() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [episodes, setEpisodes] = useState<string[]>([""]);
+  const [episodes, setEpisodes] = useState<EpisodeInput[]>([{ title: "", videoUrl: "" }]);
   const [error, setError] = useState<string | null>(null);
 
-  const addEpisode = () => setEpisodes([...episodes, ""]);
+  const addEpisode = () => setEpisodes([...episodes, { title: "", videoUrl: "" }]);
   const removeEpisode = (index: number) => setEpisodes(episodes.filter((_, i) => i !== index));
-  const updateEpisode = (index: number, value: string) => {
+  const updateEpisode = (index: number, field: keyof EpisodeInput, value: string) => {
     const newEpisodes = [...episodes];
-    newEpisodes[index] = value;
+    newEpisodes[index] = { ...newEpisodes[index], [field]: value };
     setEpisodes(newEpisodes);
+  };
+
+  const handleUpload = async (index: number, file: File) => {
+    const newEpisodes = [...episodes];
+    newEpisodes[index].uploadStatus = "uploading";
+    setEpisodes(newEpisodes);
+
+    try {
+      const data = new FormData();
+      data.append("file", file);
+      const response = await fetch("/api/uploads/video", { method: "POST", body: data });
+      if (!response.ok) throw new Error("Upload failed");
+      const result = await response.json();
+      const next = [...episodes];
+      next[index].videoUrl = result.url;
+      next[index].uploadStatus = "done";
+      setEpisodes(next);
+    } catch {
+      const next = [...episodes];
+      next[index].uploadStatus = "error";
+      setEpisodes(next);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -29,7 +62,10 @@ export default function CreateVideoSeriesPage() {
     setError(null);
 
     const formData = new FormData(e.currentTarget);
-    formData.append("episodes", JSON.stringify(episodes.filter(e => e.trim() !== "")));
+    const normalized = episodes
+      .filter((episode) => episode.title.trim() !== "")
+      .map((episode) => ({ title: episode.title.trim(), videoUrl: episode.videoUrl || null }));
+    formData.append("episodes", JSON.stringify(normalized));
 
     startTransition(async () => {
       try {
@@ -110,10 +146,46 @@ export default function CreateVideoSeriesPage() {
                 <div className="flex-1 space-y-2">
                   <Label>Episode {index + 1}</Label>
                   <Input
-                    value={episode}
-                    onChange={(e) => updateEpisode(index, e.target.value)}
+                    value={episode.title}
+                    onChange={(e) => updateEpisode(index, "title", e.target.value)}
                     placeholder="e.g., Introduction to Hooks"
                   />
+                  <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+                    <Input
+                      value={episode.videoUrl}
+                      onChange={(e) => updateEpisode(index, "videoUrl", e.target.value)}
+                      placeholder="https://video-url.com/episode.mp4"
+                    />
+                    <label className="inline-flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                      <input
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleUpload(index, file);
+                        }}
+                      />
+                      <span className="inline-flex items-center gap-1 rounded-md border px-2 py-1">
+                        <UploadCloud className="h-4 w-4" />
+                        Upload
+                      </span>
+                    </label>
+                  </div>
+                  {episode.videoUrl && !isLikelySupportedVideo(episode.videoUrl) && (
+                    <p className="text-xs text-amber-600">
+                      Use a direct .mp4, .webm, or .ogg URL with a video content-type.
+                    </p>
+                  )}
+                  {episode.uploadStatus === "uploading" && (
+                    <p className="text-xs text-muted-foreground">Uploading...</p>
+                  )}
+                  {episode.uploadStatus === "done" && (
+                    <p className="text-xs text-green-600">Upload complete</p>
+                  )}
+                  {episode.uploadStatus === "error" && (
+                    <p className="text-xs text-red-600">Upload failed</p>
+                  )}
                 </div>
                 {episodes.length > 1 && (
                   <Button type="button" variant="ghost" size="icon" onClick={() => removeEpisode(index)} className="mt-8">

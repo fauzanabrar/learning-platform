@@ -47,6 +47,7 @@ export const videoEpisodes = pgTable('video_episodes', {
     id: uuid('id').defaultRandom().primaryKey(),
     seriesId: uuid('series_id').notNull().references(() => videoSeries.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
+    videoUrl: text('video_url'),
     sortOrder: integer('sort_order').notNull(),
 });
 
