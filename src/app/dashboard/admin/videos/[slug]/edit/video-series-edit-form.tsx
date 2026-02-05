@@ -1,12 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmBackDialog } from "@/components/common/confirm-back-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateVideoSeries } from "@/lib/video-actions";
 import { VideoUpload } from "@/components/video-upload";
@@ -15,11 +16,6 @@ type EpisodeInput = {
   title: string;
   videoUrl: string;
   uploadStatus?: "idle" | "uploading" | "done" | "error";
-};
-
-const isLikelySupportedVideo = (url: string) => {
-  const lower = url.toLowerCase();
-  return lower.endsWith(".mp4") || lower.endsWith(".webm") || lower.endsWith(".ogg");
 };
 
 type VideoSeriesAdmin = {
@@ -35,12 +31,17 @@ type VideoSeriesAdmin = {
 export default function VideoSeriesEditForm({ series }: { series: VideoSeriesAdmin }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [episodes, setEpisodes] = useState<EpisodeInput[]>(
-    series.episodes.length > 0
-      ? series.episodes.map((ep) => ({ title: ep.title, videoUrl: ep.videoUrl || "" }))
-      : [{ title: "", videoUrl: "" }]
+  const initialEpisodes = useMemo(
+    () =>
+      series.episodes.length > 0
+        ? series.episodes.map((ep) => ({ title: ep.title, videoUrl: ep.videoUrl || "" }))
+        : [{ title: "", videoUrl: "" }],
+    [series.episodes]
   );
+  const [episodes, setEpisodes] = useState<EpisodeInput[]>(initialEpisodes);
   const [error, setError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [showBackConfirm, setShowBackConfirm] = useState(false);
 
   const addEpisode = () => setEpisodes([...episodes, { title: "", videoUrl: "" }]);
   const removeEpisode = (index: number) => setEpisodes(episodes.filter((_, i) => i !== index));
@@ -48,6 +49,41 @@ export default function VideoSeriesEditForm({ series }: { series: VideoSeriesAdm
     const newEpisodes = [...episodes];
     newEpisodes[index] = { ...newEpisodes[index], [field]: value };
     setEpisodes(newEpisodes);
+  };
+
+  const normalizeEpisode = (episode: EpisodeInput) => ({
+    title: episode.title.trim(),
+    videoUrl: episode.videoUrl.trim(),
+  });
+
+  const hasDirtyInputs = () => {
+    const form = formRef.current;
+    const formData = form ? new FormData(form) : null;
+    const title = formData?.get("title")?.toString().trim() || "";
+    const level = formData?.get("level")?.toString().trim() || "";
+    const duration = formData?.get("duration")?.toString().trim() || "";
+
+    const isSeriesDirty =
+      title !== series.title || level !== series.level || duration !== series.duration;
+
+    const normalizedEpisodes = episodes.map(normalizeEpisode);
+    const normalizedInitial = initialEpisodes.map(normalizeEpisode);
+    const isEpisodeCountDirty = normalizedEpisodes.length !== normalizedInitial.length;
+    const isEpisodeContentDirty = normalizedEpisodes.some((episode, index) => {
+      const initial = normalizedInitial[index];
+      if (!initial) return true;
+      return episode.title !== initial.title || episode.videoUrl !== initial.videoUrl;
+    });
+
+    return isSeriesDirty || isEpisodeCountDirty || isEpisodeContentDirty;
+  };
+
+  const handleBack = () => {
+    if (hasDirtyInputs()) {
+      setShowBackConfirm(true);
+      return;
+    }
+    router.back();
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -76,9 +112,14 @@ export default function VideoSeriesEditForm({ series }: { series: VideoSeriesAdm
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Edit Video Series</h1>
-        <p className="text-muted-foreground">Update video series details</p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold">Edit Video Series</h1>
+          <p className="text-muted-foreground">Update video series details</p>
+        </div>
+        <Button type="button" variant="outline" onClick={handleBack} disabled={isPending}>
+          Back
+        </Button>
       </div>
 
       {error && (
@@ -89,7 +130,7 @@ export default function VideoSeriesEditForm({ series }: { series: VideoSeriesAdm
         </Card>
       )}
 
-      <form onSubmit={handleSubmit}>
+      <form ref={formRef} onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
             <CardTitle>Series Details</CardTitle>
@@ -162,7 +203,7 @@ export default function VideoSeriesEditForm({ series }: { series: VideoSeriesAdm
         </Card>
 
         <div className="mt-6 flex gap-3">
-          <Button type="button" variant="outline" onClick={() => router.back()} disabled={isPending}>
+          <Button type="button" variant="outline" onClick={handleBack} disabled={isPending}>
             Cancel
           </Button>
           <Button type="submit" disabled={isPending}>
@@ -170,6 +211,11 @@ export default function VideoSeriesEditForm({ series }: { series: VideoSeriesAdm
           </Button>
         </div>
       </form>
+      <ConfirmBackDialog
+        open={showBackConfirm}
+        onOpenChange={setShowBackConfirm}
+        onConfirm={() => router.back()}
+      />
     </div>
   );
 }

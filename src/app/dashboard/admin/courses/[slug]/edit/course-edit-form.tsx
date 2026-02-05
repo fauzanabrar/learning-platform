@@ -1,13 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmBackDialog } from "@/components/common/confirm-back-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateCourse } from "@/lib/course-actions";
 
@@ -28,6 +29,8 @@ export default function CourseEditForm({ course }: { course: Course }) {
   const [isPending, startTransition] = useTransition();
   const [modules, setModules] = useState<string[]>(course.modules.length > 0 ? course.modules : [""]);
   const [error, setError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [showBackConfirm, setShowBackConfirm] = useState(false);
 
   const addModule = () => {
     setModules([...modules, ""]);
@@ -41,6 +44,24 @@ export default function CourseEditForm({ course }: { course: Course }) {
     const newModules = [...modules];
     newModules[index] = value;
     setModules(newModules);
+  };
+
+  const hasDirtyInputs = () => {
+    const form = formRef.current;
+    const formData = form ? new FormData(form) : null;
+    const hasFormValues = formData
+      ? Array.from(formData.values()).some((value) => String(value).trim() !== "")
+      : false;
+    const hasModuleValues = modules.some((module) => module.trim() !== "");
+    return hasFormValues || hasModuleValues;
+  };
+
+  const handleBack = () => {
+    if (hasDirtyInputs()) {
+      setShowBackConfirm(true);
+      return;
+    }
+    router.back();
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -74,9 +95,14 @@ export default function CourseEditForm({ course }: { course: Course }) {
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Edit Course</h1>
-        <p className="text-muted-foreground">Update course information</p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold">Edit Course</h1>
+          <p className="text-muted-foreground">Update course information</p>
+        </div>
+        <Button type="button" variant="outline" onClick={handleBack} disabled={isPending}>
+          Back
+        </Button>
       </div>
 
       {error && (
@@ -87,7 +113,7 @@ export default function CourseEditForm({ course }: { course: Course }) {
         </Card>
       )}
 
-      <form onSubmit={handleSubmit}>
+      <form ref={formRef} onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
             <CardTitle>Course Details</CardTitle>
@@ -214,12 +240,7 @@ export default function CourseEditForm({ course }: { course: Course }) {
         </Card>
 
         <div className="mt-6 flex gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-            disabled={isPending}
-          >
+          <Button type="button" variant="outline" onClick={handleBack} disabled={isPending}>
             Cancel
           </Button>
           <Button type="submit" disabled={isPending}>
@@ -227,6 +248,11 @@ export default function CourseEditForm({ course }: { course: Course }) {
           </Button>
         </div>
       </form>
+      <ConfirmBackDialog
+        open={showBackConfirm}
+        onOpenChange={setShowBackConfirm}
+        onConfirm={() => router.back()}
+      />
     </div>
   );
 }

@@ -1,12 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmBackDialog } from "@/components/common/confirm-back-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createBlogPost } from "@/lib/blog-actions";
 
@@ -15,6 +16,8 @@ export default function CreateBlogPostPage() {
   const [isPending, startTransition] = useTransition();
   const [contents, setContents] = useState<string[]>([""]);
   const [error, setError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [showBackConfirm, setShowBackConfirm] = useState(false);
 
   const addContent = () => setContents([...contents, ""]);
   const removeContent = (index: number) => setContents(contents.filter((_, i) => i !== index));
@@ -22,6 +25,24 @@ export default function CreateBlogPostPage() {
     const newContents = [...contents];
     newContents[index] = value;
     setContents(newContents);
+  };
+
+  const hasDirtyInputs = () => {
+    const form = formRef.current;
+    const formData = form ? new FormData(form) : null;
+    const hasFormValues = formData
+      ? Array.from(formData.values()).some((value) => String(value).trim() !== "")
+      : false;
+    const hasContentValues = contents.some((content) => content.trim() !== "");
+    return hasFormValues || hasContentValues;
+  };
+
+  const handleBack = () => {
+    if (hasDirtyInputs()) {
+      setShowBackConfirm(true);
+      return;
+    }
+    router.back();
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -47,9 +68,14 @@ export default function CreateBlogPostPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Create Blog Post</h1>
-        <p className="text-muted-foreground">Write a new blog post</p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold">Create Blog Post</h1>
+          <p className="text-muted-foreground">Write a new blog post</p>
+        </div>
+        <Button type="button" variant="outline" onClick={handleBack} disabled={isPending}>
+          Back
+        </Button>
       </div>
 
       {error && (
@@ -60,7 +86,7 @@ export default function CreateBlogPostPage() {
         </Card>
       )}
 
-      <form onSubmit={handleSubmit}>
+      <form ref={formRef} onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
             <CardTitle>Post Details</CardTitle>
@@ -168,12 +194,7 @@ export default function CreateBlogPostPage() {
         </Card>
 
         <div className="mt-6 flex gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-            disabled={isPending}
-          >
+          <Button type="button" variant="outline" onClick={handleBack} disabled={isPending}>
             Cancel
           </Button>
           <Button type="submit" disabled={isPending}>
@@ -181,6 +202,11 @@ export default function CreateBlogPostPage() {
           </Button>
         </div>
       </form>
+      <ConfirmBackDialog
+        open={showBackConfirm}
+        onOpenChange={setShowBackConfirm}
+        onConfirm={() => router.back()}
+      />
     </div>
   );
 }

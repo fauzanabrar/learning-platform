@@ -1,12 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmBackDialog } from "@/components/common/confirm-back-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateTopic } from "@/lib/topic-actions";
 
@@ -28,6 +29,8 @@ export default function TopicEditForm({ topic }: { topic: TopicAdmin }) {
   const [courseSlugs, setCourseSlugs] = useState<string[]>(topic.courseSlugs.length > 0 ? topic.courseSlugs : [""]);
   const [quizSlugs, setQuizSlugs] = useState<string[]>(topic.quizSlugs.length > 0 ? topic.quizSlugs : [""]);
   const [error, setError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [showBackConfirm, setShowBackConfirm] = useState(false);
 
   const updateList = (setter: (value: string[]) => void, list: string[], index: number, value: string) => {
     const next = [...list];
@@ -38,6 +41,27 @@ export default function TopicEditForm({ topic }: { topic: TopicAdmin }) {
   const addItem = (setter: (value: string[]) => void, list: string[]) => setter([...list, ""]);
   const removeItem = (setter: (value: string[]) => void, list: string[], index: number) =>
     setter(list.filter((_, i) => i !== index));
+
+  const hasDirtyInputs = () => {
+    const form = formRef.current;
+    const formData = form ? new FormData(form) : null;
+    const hasFormValues = formData
+      ? Array.from(formData.values()).some((value) => String(value).trim() !== "")
+      : false;
+    const hasListValues =
+      seriesSlugs.some((slug) => slug.trim() !== "") ||
+      courseSlugs.some((slug) => slug.trim() !== "") ||
+      quizSlugs.some((slug) => slug.trim() !== "");
+    return hasFormValues || hasListValues;
+  };
+
+  const handleBack = () => {
+    if (hasDirtyInputs()) {
+      setShowBackConfirm(true);
+      return;
+    }
+    router.back();
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -64,9 +88,14 @@ export default function TopicEditForm({ topic }: { topic: TopicAdmin }) {
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Edit Topic</h1>
-        <p className="text-muted-foreground">Update topic details and relationships</p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold">Edit Topic</h1>
+          <p className="text-muted-foreground">Update topic details and relationships</p>
+        </div>
+        <Button type="button" variant="outline" onClick={handleBack} disabled={isPending}>
+          Back
+        </Button>
       </div>
 
       {error && (
@@ -77,7 +106,7 @@ export default function TopicEditForm({ topic }: { topic: TopicAdmin }) {
         </Card>
       )}
 
-      <form onSubmit={handleSubmit}>
+      <form ref={formRef} onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
             <CardTitle>Topic Details</CardTitle>
@@ -176,7 +205,7 @@ export default function TopicEditForm({ topic }: { topic: TopicAdmin }) {
         </Card>
 
         <div className="mt-6 flex gap-3">
-          <Button type="button" variant="outline" onClick={() => router.back()} disabled={isPending}>
+          <Button type="button" variant="outline" onClick={handleBack} disabled={isPending}>
             Cancel
           </Button>
           <Button type="submit" disabled={isPending}>
@@ -184,6 +213,11 @@ export default function TopicEditForm({ topic }: { topic: TopicAdmin }) {
           </Button>
         </div>
       </form>
+      <ConfirmBackDialog
+        open={showBackConfirm}
+        onOpenChange={setShowBackConfirm}
+        onConfirm={() => router.back()}
+      />
     </div>
   );
 }
